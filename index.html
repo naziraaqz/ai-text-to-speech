@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>AI Text to Speech</title>
+<style>
+  /* Reset */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #ffffff;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  h1 {
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+    text-align: center;
+  }
+
+  p.subtitle {
+    font-weight: 300;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    opacity: 0.85;
+  }
+
+  #tts-form {
+    background: rgba(255,255,255,0.1);
+    padding: 1.5rem;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+  }
+
+  button {
+    background: #ff7e5f;
+    background: linear-gradient(to right, #feb47b, #ff7e5f);
+    border: none;
+    padding: 0.75rem 1rem;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    user-select: none;
+  }
+  button:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+  }
+  button:hover:not(:disabled) {
+    background: linear-gradient(to right, #ff7e5f, #feb47b);
+  }
+
+  #audio-container {
+    margin-top: 1rem;
+    text-align: center;
+  }
+
+  audio {
+    width: 100%;
+    max-width: 600px;
+    outline: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  }
+
+  #download-link {
+    margin-top: 1rem;
+    display: inline-block;
+    color: #fff;
+    background-color: #5c3a8a;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    user-select: none;
+    transition: background-color 0.3s ease;
+  }
+  #download-link:hover {
+    background-color: #8e64c9;
+  }
+
+  /* Responsive */
+  @media (max-width: 400px) {
+    h1 {
+      font-size: 1.5rem;
+    }
+    textarea {
+      font-size: 0.9rem;
+    }
+    button {
+      font-size: 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>AI Text to Speech</h1>
+<p class="subtitle">Enter text below and get speech audio you can play or download.</p>
+
+<form id="tts-form" onsubmit="return false;">
+  <textarea id="text-input" placeholder="Type your text here..." maxlength="500"></textarea>
+  <button id="speak-btn" type="button">Generate Speech</button>
+</form>
+
+<div id="audio-container" style="display:none;">
+  <audio id="audio-player" controls></audio><br/>
+  <a id="download-link" href="#" download="tts-audio.wav">Download Audio</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mespeak/mespeak.min.js"></script>
+<script>
+// meSpeak config & voice paths from CDN (default eng_us)
+const mespeakConfigUrl = "https://cdn.jsdelivr.net/npm/mespeak/mespeak_config.json";
+const mespeakVoiceUrl = "https://cdn.jsdelivr.net/npm/mespeak/voices/en/en-us.json";
+
+function loadMeSpeak() {
+  return new Promise((resolve, reject) => {
+    meSpeak.loadConfig(mespeakConfigUrl, () => {
+      meSpeak.loadVoice(mespeakVoiceUrl, () => {
+        resolve();
+      });
+    });
+  });
+}
+
+async function init() {
+  await loadMeSpeak();
+
+  const speakBtn = document.getElementById('speak-btn');
+  const textInput = document.getElementById('text-input');
+  const audioPlayer = document.getElementById('audio-player');
+  const audioContainer = document.getElementById('audio-container');
+  const downloadLink = document.getElementById('download-link');
+
+  speakBtn.addEventListener('click', () => {
+    const text = textInput.value.trim();
+    if (!text) {
+      alert('Please enter some text to generate speech.');
+      return;
+    }
+    if (text.length > 500) {
+      alert('Text too long! Max 500 characters allowed.');
+      return;
+    }
+
+    speakBtn.disabled = true;
+    speakBtn.textContent = 'Generating...';
+
+    setTimeout(() => {
+      // Generate WAV audio data as a base64 encoded string
+      const wavBase64 = meSpeak.speak(text, { rawdata: 'base64', amplitude: 100, wordgap: 0, pitch: 50, speed: 175 });
+      if (!wavBase64) {
+        alert('Failed to generate speech audio.');
+        speakBtn.disabled = false;
+        speakBtn.textContent = 'Generate Speech';
+        return;
+      }
+
+      // Create blob from wav base64
+      function base64ToArrayBuffer(base64) {
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+      const wavBuffer = base64ToArrayBuffer(wavBase64);
+      const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+
+      // Setup audio player and download link
+      audioPlayer.src = url;
+      audioPlayer.load();
+      audioContainer.style.display = 'block';
+
+      downloadLink.href = url;
+      downloadLink.download = 'tts-audio.wav';
+
+      // Reset button
+      speakBtn.disabled = false;
+      speakBtn.textContent = 'Generate Speech';
+
+      // Auto play
+      audioPlayer.play();
+    }, 100);
+  });
+}
+
+init();
+</script>
+
+</body>
+</html>

@@ -1,69 +1,42 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Text to Speech</title>
-  <script src="https://cdn.jsdelivr.net/npm/mespeak@1.0.5/mespeak.min.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      text-align: center;
+<script>
+  let meSpeakReady = false;
+
+  meSpeak.loadConfig("https://cdn.jsdelivr.net/npm/mespeak@1.0.5/mespeak_config.json", function() {
+    meSpeak.loadVoice("https://cdn.jsdelivr.net/npm/mespeak@1.0.5/voices/en/en.json", function() {
+      meSpeakReady = true;
+      console.log("meSpeak siap digunakan.");
+    });
+  });
+
+  function generateSpeech() {
+    if (!meSpeakReady) {
+      alert("Suara masih dimuat, silakan tunggu sebentar...");
+      return;
     }
-    textarea {
-      width: 100%;
-      height: 100px;
-      margin-bottom: 1rem;
+
+    const text = document.getElementById("text-input").value;
+    if (text.trim() === "") {
+      alert("Masukkan teks terlebih dahulu.");
+      return;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <h1>AI Text to Speech</h1>
-  <textarea id="text-input" placeholder="Tulis teks di sini..."></textarea><br />
-  <button onclick="generateSpeech()">Generate Speech</button>
-  <audio id="audio-player" controls style="margin-top: 20px; display: none;"></audio>
 
-  <script>
-    // Load config dan voice dari CDN
-    meSpeak.loadConfig("https://cdn.jsdelivr.net/npm/mespeak@1.0.5/mespeak_config.json");
-    meSpeak.loadVoice("https://cdn.jsdelivr.net/npm/mespeak@1.0.5/voices/en/en.json");
+    const audioData = meSpeak.speak(text, { rawdata: "data-url" });
 
-    function generateSpeech() {
-      const text = document.getElementById("text-input").value;
-      if (text.trim() === "") {
-        alert("Masukkan teks terlebih dahulu.");
-        return;
-      }
+    const audioPlayer = document.getElementById("audio-player");
+    audioPlayer.src = audioData;
+    audioPlayer.style.display = "block";
+    audioPlayer.play();
 
-      // Hasilkan audio sebagai data URI
-      const audioData = meSpeak.speak(text, { rawdata: "data-url" });
+    const existingDownload = document.getElementById("download-link");
+    if (existingDownload) existingDownload.remove();
 
-      // Tampilkan dan mainkan audio
-      const audioPlayer = document.getElementById("audio-player");
-      audioPlayer.src = audioData;
-      audioPlayer.style.display = "block";
-      audioPlayer.play();
-
-      // Tambahkan tombol download
-      const existingDownload = document.getElementById("download-link");
-      if (existingDownload) existingDownload.remove();
-
-      const downloadLink = document.createElement("a");
-      downloadLink.href = audioData;
-      downloadLink.download = "speech.wav";
-      downloadLink.innerText = "Download Audio";
-      downloadLink.id = "download-link";
-      downloadLink.style.display = "block";
-      downloadLink.style.marginTop = "10px";
-      document.body.appendChild(downloadLink);
-    }
-  </script>
-</body>
-</html>
+    const downloadLink = document.createElement("a");
+    downloadLink.href = audioData;
+    downloadLink.download = "speech.wav";
+    downloadLink.innerText = "Download Audio";
+    downloadLink.id = "download-link";
+    downloadLink.style.display = "block";
+    downloadLink.style.marginTop = "10px";
+    document.body.appendChild(downloadLink);
+  }
+</script>

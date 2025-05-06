@@ -26,7 +26,7 @@
 <body>
   <h1>Text to Speech</h1>
   <textarea id="text" placeholder="Tulis teks di sini..."></textarea><br />
-  <button onclick="speakText()">Baca Teks</button>
+  <button onclick="speakText()">Speak</button>
 
   <script>
     function speakText() {
@@ -37,7 +37,7 @@
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "id-ID"; // Bahasa Indonesia
+      utterance.lang = "id-EN"; // Bahasa Inggris
       speechSynthesis.speak(utterance);
     }
   </script>
